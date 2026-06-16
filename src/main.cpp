@@ -4,17 +4,21 @@
 #include <vector>
 using namespace std;
 
-struct Card {
+enum class gameState {MENU, GAMEPLAY, SETTINGS};
+
+enum class cardStatus {HIDDEN, REVEALED, GUESSED};
+
+class Card {
+public:
     int id;
     Rectangle rectangle;
     Color color;
-    int status; // 0 - nieodkryta 1 - odkryta 2 - zgadnieta
+    cardStatus status;
 };
 
 vector<Card> createDeck(int screenWidth, int screenHeight, int cols, int rows, int cardSize, int gapSize){
     vector<Card> deck;
     int totalCards = cols * rows;
-    int cardCounter = 0;
 
     vector<int> cardIDs;
     for (int i = 0; i < totalCards; i++) {
@@ -37,14 +41,22 @@ vector<Card> createDeck(int screenWidth, int screenHeight, int cols, int rows, i
             temp.rectangle.width = cardSize;
             temp.rectangle.height = cardSize;
             temp.color = RED;
-            temp.status = 0;
+            temp.status = cardStatus::HIDDEN;
             deck.push_back(temp);
         }
     }
     return deck;
 }
 
-void drawDeck(const vector<Card> &deck, int cardSize){
+void drawMenu(){
+    DrawText("MENU", 100, 100, 50, BLACK);
+}
+
+void drawSettings(){
+    DrawText("SETTINGS", 100, 100, 50, BLACK);
+}
+
+void drawDeck(const vector<Card> &deck){
     for (int i = 0; i < deck.size(); i++) {
         int fontSize = deck[i].rectangle.width * 0.3f;
         int textWidth = MeasureText(TextFormat("%d", deck[i].id), fontSize);
@@ -52,8 +64,57 @@ void drawDeck(const vector<Card> &deck, int cardSize){
         float textY = deck[i].rectangle.y + (deck[i].rectangle.height / 2) - (fontSize / 2);
 
         DrawRectangleRec(deck[i].rectangle, deck[i].color);
-        if (deck[i].status == 1) {
+        if (deck[i].status == cardStatus::REVEALED || deck[i].status == cardStatus::GUESSED) {
             DrawText(TextFormat("%d", deck[i].id), textX, textY, fontSize, BLACK);
+        }
+    }
+}
+
+void checkForMouse(vector<Card> &deck){
+    int revealedCars = 0;
+    for (int i = 0; i < deck.size(); i++) {
+        if (deck[i].status == cardStatus::REVEALED) {
+            revealedCars++;
+        }
+    }
+
+    if (revealedCars == 2) {
+        WaitTime(0.7);
+        int firstCard = -1;
+        int secondCard = -1;
+        for (int i = 0; i < deck.size(); i++) {
+            if (deck[i].status == cardStatus::REVEALED) {
+                if (firstCard == -1) {
+                    firstCard = i;
+                } else {
+                    secondCard = i;
+                }
+            }
+        }
+
+        if (deck[firstCard].id == deck[secondCard].id) {
+            deck[firstCard].status = cardStatus::GUESSED;
+            deck[firstCard].color = LIGHTGRAY;
+            deck[secondCard].status = cardStatus::GUESSED;
+            deck[secondCard].color = LIGHTGRAY;
+        } else {
+            deck[firstCard].status = cardStatus::HIDDEN;
+            deck[firstCard].color = RED;;
+            deck[secondCard].status = cardStatus::HIDDEN;
+            deck[secondCard].color = RED;
+        }
+        return;
+    }
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 mousePos = GetMousePosition();
+        for (int i = 0; i < deck.size(); i++) {
+            if (CheckCollisionPointRec(mousePos, deck[i].rectangle)) {
+                if (deck[i].status == cardStatus::HIDDEN) {
+                    deck[i].color = GREEN;
+                    deck[i].status = cardStatus::REVEALED;
+                }
+            }
         }
     }
 }
@@ -71,23 +132,33 @@ int main(){
     SetTargetFPS(60);
 
     vector<Card> deck = createDeck(screenWidth, screenHeight, cols, rows, cardSize, gapSize);
+    gameState currentGameState = gameState::MENU;
 
     while (!WindowShouldClose()) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            Vector2 mousePos = GetMousePosition();
-            for (int i = 0; i < deck.size(); i++) {
-                if (CheckCollisionPointRec(mousePos, deck[i].rectangle)) {
-                    deck[i].color = GREEN;
-                    deck[i].status = 1;
-                }
-            }
+        switch (currentGameState) {
+            case gameState::MENU:
+                // sprawdzenie przyciskow
+                break;
+            case gameState::GAMEPLAY:
+                checkForMouse(deck);
+                break;
+            case gameState::SETTINGS:
+                // sprawdzenie przyciskow
+                break;
         }
-
-
-
         BeginDrawing();
         ClearBackground(WHITE);
-        drawDeck(deck, cardSize);
+        switch (currentGameState) {
+            case gameState::MENU:
+                drawMenu();
+                break;
+            case gameState::GAMEPLAY:
+                drawDeck(deck);
+                break;
+            case gameState::SETTINGS:
+                drawSettings();
+                break;
+        }
         EndDrawing();
     }
     CloseWindow();
