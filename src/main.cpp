@@ -9,7 +9,7 @@ const int screenWidth = 1280;
 const int screenHeight = 720;
 const int cols = 4;
 const int rows = 4;
-const int cardSize = 100;
+const int cardSize = 115;
 const int gapSize = 15;
 
 enum class gameState {MENU, GAMEPLAY, SETTINGS};
@@ -30,24 +30,25 @@ struct Card {
     }
 
     void Draw() const {
+        if (status == cardStatus::GUESSED) {
+            return;
+        }
         Color cardColor;
 
-        if (status == cardStatus::GUESSED) {
-            cardColor = GRAY;
-        } else if (status == cardStatus::REVEALED) {
-            cardColor = GREEN;
+        if (status == cardStatus::REVEALED) {
+            cardColor = GOLD;
         } else {
             if (isHovered()) {
-                cardColor = ORANGE;
+                cardColor = GRAY;
             } else {
-                cardColor = RED;
+                cardColor = DARKGRAY;
             }
         }
 
         DrawRectangleRounded(rectangle, 0.25f, 4, cardColor);
-        DrawRectangleRoundedLinesEx(rectangle, 0.25f, 4, 3, BLACK);
+        DrawRectangleRoundedLinesEx(rectangle, 0.25f, 4, 2.5f, BLACK);
 
-        if (status == cardStatus::REVEALED || status == cardStatus::GUESSED) {
+        if (status == cardStatus::REVEALED) {
             int fontSize = rectangle.width * 0.3f;
             int textWidth = MeasureText(TextFormat("%d", id), fontSize);
             float textX = rectangle.x + (rectangle.width / 2.0f) - (textWidth / 2.0f);
@@ -85,6 +86,20 @@ struct Button {
     }
 };
 
+struct gameStats {
+    int movesCount = 0;
+    float gameTime = 0.0f;
+    int pairsLeft = 0;
+    float revealTimer = 0.0f;
+
+    void Reset(int totalPairs){
+        movesCount = 0;
+        gameTime = 0.0f;
+        pairsLeft = totalPairs;
+        revealTimer = 0.0f;
+    }
+};
+
 vector<Card> createDeck(){
     vector<Card> deck;
     int totalCards = cols * rows;
@@ -105,7 +120,7 @@ vector<Card> createDeck(){
             IDIndex++;
 
             temp.rectangle.x = ((screenWidth - ((cols * cardSize) + (cols * gapSize))) / 2) + i * (cardSize + gapSize);
-            temp.rectangle.y = ((screenHeight - ((rows * cardSize) + (rows * gapSize))) / 2) + j * (cardSize + gapSize);
+            temp.rectangle.y = ((screenHeight - ((rows * cardSize) + (rows * gapSize))) / 2) + 20 + j * (cardSize + gapSize);
             temp.rectangle.width = cardSize;
             temp.rectangle.height = cardSize;
             temp.status = cardStatus::HIDDEN;
@@ -115,19 +130,26 @@ vector<Card> createDeck(){
     return deck;
 }
 
-void drawMenu(Button &playButton, Button &settingsButton, Button &exitButton) {
-    int titleFontSize = 64;
+void drawMenu(Button &playButtonEasy, Button &playButtonMedium, Button &playButtonHard, Button &settingsButton, Button &exitButton) {
+    int titleFontSize = 110;
     const char *title = "MEMORY GAME";
     int titleWidth = MeasureText(title, titleFontSize);
-    DrawText(title, (screenWidth - titleWidth) / 2 + 3, 130 + 3, titleFontSize, LIGHTGRAY); // tutaj to zmienic z magic numbers na automat
-    DrawText(title, (screenWidth - titleWidth) / 2, 130, titleFontSize, BLACK);
+    DrawText(title, (screenWidth - titleWidth) / 2 + 3, 90 + 3, titleFontSize, LIGHTGRAY);
+    DrawText(title, (screenWidth - titleWidth) / 2, 90, titleFontSize, BLACK);
 
-    int subFontSize = 20;
-    const char *subtitle = "Zapamietaj pozycje i dopasuj w pary wszystkie karty!";
+    int subFontSize = 35;
+    const char *subtitle = "Dopasuj w pary wszystkie karty!";
     int subWidth = MeasureText(subtitle, subFontSize);
-    DrawText(subtitle, (1280 - subWidth) / 2, 210, subFontSize, DARKGRAY);
+    DrawText(subtitle, (1280 - subWidth) / 2, 200, subFontSize, DARKGRAY);
 
-    playButton.Draw();
+    int playFontSize = 25;
+    const char *play = "Wybierz poziom trudnosci:";
+    int playWidth = MeasureText(play, playFontSize);
+    DrawText(play, (1280 - playWidth) / 2, 270, playFontSize, DARKGRAY);
+
+    playButtonEasy.Draw();
+    playButtonMedium.Draw();
+    playButtonHard.Draw();
     settingsButton.Draw();
     exitButton.Draw();
 }
@@ -136,13 +158,31 @@ void drawSettings(){
     DrawText("SETTINGS", 100, 100, 50, BLACK);
 }
 
-void drawGame(vector<Card> &deck){
+void drawGame(vector<Card> &deck, Button &backButton, gameStats &stats){
     for (int i = 0; i < deck.size(); i++) {
         deck[i].Draw();
     }
+    backButton.Draw();
+
+    int fontSize = 30;
+    const char *timeText = TextFormat("Czas: %ds", (int)stats.gameTime);
+    const char *movesText = TextFormat("Ruchy: %d", stats.movesCount);
+    const char *pairsText = TextFormat("Pozostalo par: %d", stats.pairsLeft);
+
+    int timeWidth = MeasureText(timeText, fontSize);
+    int movesWidth = MeasureText(movesText, fontSize);
+    int pairsWidth = MeasureText(pairsText, fontSize);
+
+    int leftColumnCenter = 1280 / 4;
+    int middleColumnCenter = 1280 / 2;
+    int rightColumnCenter = (1280 / 4) * 3;
+
+    DrawText(timeText, leftColumnCenter - (timeWidth / 2), 40, fontSize, DARKGRAY);
+    DrawText(movesText, middleColumnCenter - (movesWidth / 2), 40, fontSize, DARKGRAY);
+    DrawText(pairsText, rightColumnCenter - (pairsWidth / 2), 40, fontSize, DARKGRAY);
 }
 
-void checkForMouse(vector<Card> &deck, float &revealTimer) {
+void checkForMouse(vector<Card> &deck, gameStats &stats) {
     int revealedCards = 0;
     int firstCard = -1;
     int secondCard = -1;
@@ -158,19 +198,21 @@ void checkForMouse(vector<Card> &deck, float &revealTimer) {
         }
     }
     if (revealedCards == 2) {
-        if (revealTimer <= 0.0f) {
-            revealTimer = 0.8f;
+        if (stats.revealTimer <= 0.0f) {
+            stats.revealTimer = 0.8f;
+            stats.movesCount++;
         } else {
-            revealTimer -= GetFrameTime();
-            if (revealTimer <= 0.0f) {
+            stats.revealTimer -= GetFrameTime();
+            if (stats.revealTimer <= 0.0f) {
                 if (deck[firstCard].id == deck[secondCard].id) {
                     deck[firstCard].status = cardStatus::GUESSED;
                     deck[secondCard].status = cardStatus::GUESSED;
+                    stats.pairsLeft--;
                 } else {
                     deck[firstCard].status = cardStatus::HIDDEN;
                     deck[secondCard].status = cardStatus::HIDDEN;
                 }
-                revealTimer = 0.0f;
+                stats.revealTimer = 0.0f;
             }
         }
         return;
@@ -187,27 +229,29 @@ int main(){
     InitWindow(screenWidth, screenHeight, "Memory Game");
     SetTargetFPS(60);
 
-    Button playButton = { { 1280 / 2.0f - 150, 290, 300, 55 }, "Zagraj" };
-    Button settingsButton = { { 1280 / 2.0f - 150, 370, 300, 55 }, "Ustawienia" };
-    Button exitButton = { { 1280 / 2.0f - 150, 450, 300, 55 }, "Wyjscie" };
+    Button playButtonEasy   = { { 1280 / 2.0f - 210, 330, 120, 120 }, "Easy" };
+    Button playButtonMedium = { { 1280 / 2.0f - 60, 330, 120, 120 }, "Medium" };
+    Button playButtonHard   = { { 1280 / 2.0f + 90, 330, 120, 120 }, "Hard" };
+    Button settingsButton   = { { 1280 / 2.0f - 210, 470, 420, 80 }, "Ustawienia" };
+    Button exitButton       = { { 1280 / 2.0f - 210, 570, 420, 80 }, "Wyjscie" };
 
-    Button gameplayBackButton = { { 30, 30, 140, 45 }, "<- Menu" };
-    Button settingsBackButton = { { 30, 30, 140, 45 }, "<- Wstecz" };
+    Button gameplayBackButton = { { 30, 645, 160, 45 }, "Wstecz" };
+    Button settingsBackButton = { { 30, 645, 160, 45 }, "Wstecz" };
 
     Button victoryRestartButton = { { 1280 / 2.0f - 150, 720 / 2.0f + 10, 300, 50 }, "Zagraj ponownie" };
     Button victoryMenuButton = { { 1280 / 2.0f - 150, 720 / 2.0f + 75, 300, 50 }, "Menu glowne" };
 
     vector<Card> deck;
+    gameStats stats;
     gameState currentGameState = gameState::MENU;
-    float revealTimer = 0.0f;
     bool keepRunning = true;
 
     while (keepRunning && !WindowShouldClose()) {
         switch (currentGameState) {
             case gameState::MENU:
-                if (playButton.isClicked()) {
+                if (playButtonMedium.isClicked()) {
                     deck = createDeck();
-                    revealTimer = 0.0f;
+                    stats.Reset(cols * rows / 2);
                     currentGameState = gameState::GAMEPLAY;
                 } else if (settingsButton.isClicked()) {
                     currentGameState = gameState::SETTINGS;
@@ -216,7 +260,11 @@ int main(){
                 }
                 break;
             case gameState::GAMEPLAY:
-                checkForMouse(deck, revealTimer);
+                if (gameplayBackButton.isClicked()) {
+                    currentGameState = gameState::MENU;
+                }
+                stats.gameTime += GetFrameTime();
+                checkForMouse(deck, stats);
                 break;
             case gameState::SETTINGS:
                 // sprawdzenie przyciskow
@@ -226,10 +274,10 @@ int main(){
         ClearBackground(WHITE);
         switch (currentGameState) {
             case gameState::MENU:
-                drawMenu(playButton, settingsButton, exitButton);
+                drawMenu(playButtonEasy, playButtonMedium, playButtonHard, settingsButton, exitButton);
                 break;
             case gameState::GAMEPLAY:
-                drawGame(deck);
+                drawGame(deck, gameplayBackButton, stats);
                 break;
             case gameState::SETTINGS:
                 drawSettings();
