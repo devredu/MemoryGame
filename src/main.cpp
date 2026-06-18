@@ -4,38 +4,50 @@
 #include <vector>
 using namespace std;
 
-// Ustawienia
 const int screenWidth = 1280;
 const int screenHeight = 720;
-const int cols = 4;
-const int rows = 4;
-const int cardSize = 115;
 const int gapSize = 15;
+enum struct GameState {MENU, GAMEPLAY, SETTINGS, VICTORY};
+enum struct CardStatus {HIDDEN, REVEALED, GUESSED};
 
-enum class gameState {MENU, GAMEPLAY, SETTINGS};
+struct GameConfig {
+    int cols;
+    int rows;
+    int cardSize;
+};
 
-enum class cardStatus {HIDDEN, REVEALED, GUESSED};
+struct GameStats {
+    int movesCount = 0;
+    float gameTime = 0.0f;
+    int pairsLeft = 0;
+    float revealTimer = 0.0f;
+
+    void reset(int totalPairs){
+        movesCount = 0;
+        gameTime = 0.0f;
+        pairsLeft = totalPairs;
+        revealTimer = 0.0f;
+    }
+};
 
 struct Card {
     int id;
     Rectangle rectangle;
-    cardStatus status;
+    CardStatus status;
 
     bool isHovered() const {
         return CheckCollisionPointRec(GetMousePosition(), rectangle);
     }
-
     bool isClicked() const {
         return isHovered() && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     }
-
-    void Draw() const {
-        if (status == cardStatus::GUESSED) {
+    void draw() const {
+        if (status == CardStatus::GUESSED) {
             return;
         }
         Color cardColor;
 
-        if (status == cardStatus::REVEALED) {
+        if (status == CardStatus::REVEALED) {
             cardColor = GOLD;
         } else {
             if (isHovered()) {
@@ -48,12 +60,11 @@ struct Card {
         DrawRectangleRounded(rectangle, 0.25f, 4, cardColor);
         DrawRectangleRoundedLinesEx(rectangle, 0.25f, 4, 2.5f, BLACK);
 
-        if (status == cardStatus::REVEALED) {
+        if (status == CardStatus::REVEALED) {
             int fontSize = rectangle.width * 0.3f;
             int textWidth = MeasureText(TextFormat("%d", id), fontSize);
-            float textX = rectangle.x + (rectangle.width / 2.0f) - (textWidth / 2.0f);
-            float textY = rectangle.y + (rectangle.height / 2.0f) - (fontSize / 2.0f);
-
+            float textX = rectangle.x + (rectangle.width - textWidth) / 2.0f;
+            float textY = rectangle.y + (rectangle.height - fontSize) / 2.0f;
             DrawText(TextFormat("%d", id), textX, textY, fontSize, BLACK);
         }
     }
@@ -69,7 +80,7 @@ struct Button {
     bool isClicked() {
         return isHovered() && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     }
-    void Draw() {
+    void draw() {
         Color buttonColor;
 
         if (isHovered()) {
@@ -78,31 +89,22 @@ struct Button {
             buttonColor = DARKGRAY;
         }
 
+        Rectangle shadowRectangle = {rectangle.x + 4, rectangle.y + 4, rectangle.width, rectangle.height};
+        DrawRectangleRounded(shadowRectangle, 0.25f, 4, BLACK);
         DrawRectangleRounded(rectangle, 0.25f, 4, buttonColor);
-        DrawRectangleRoundedLinesEx(rectangle, 0.25f, 4, 1.5f, BLACK);
+        DrawRectangleRoundedLinesEx(rectangle, 0.25f, 4, 2.5f, BLACK);
+
         int fontSize = 20;
         int textWidth = MeasureText(text, fontSize);
-        DrawText(text, rectangle.x + (rectangle.width - textWidth) / 2.0f, rectangle.y + (rectangle.height - fontSize) / 2.0f, fontSize, WHITE);
+        float textX = rectangle.x + (rectangle.width - textWidth) / 2.0f;
+        float textY = rectangle.y + (rectangle.height - fontSize) / 2.0f;
+        DrawText(text, textX, textY, fontSize, WHITE);
     }
 };
 
-struct gameStats {
-    int movesCount = 0;
-    float gameTime = 0.0f;
-    int pairsLeft = 0;
-    float revealTimer = 0.0f;
-
-    void Reset(int totalPairs){
-        movesCount = 0;
-        gameTime = 0.0f;
-        pairsLeft = totalPairs;
-        revealTimer = 0.0f;
-    }
-};
-
-vector<Card> createDeck(){
+vector<Card> createDeck(GameConfig config){
     vector<Card> deck;
-    int totalCards = cols * rows;
+    int totalCards = config.cols * config.rows;
 
     vector<int> cardIDs;
     for (int i = 0; i < totalCards; i++) {
@@ -113,17 +115,17 @@ vector<Card> createDeck(){
     shuffle(cardIDs.begin(), cardIDs.end(), g);
 
     int IDIndex = 0;
-    for (int i = 0; i < cols; i++) {
-        for (int j = 0; j < rows; j++) {
+    for (int i = 0; i < config.cols; i++) {
+        for (int j = 0; j < config.rows; j++) {
             Card temp;
             temp.id = cardIDs[IDIndex];
             IDIndex++;
 
-            temp.rectangle.x = ((screenWidth - ((cols * cardSize) + (cols * gapSize))) / 2) + i * (cardSize + gapSize);
-            temp.rectangle.y = ((screenHeight - ((rows * cardSize) + (rows * gapSize))) / 2) + 20 + j * (cardSize + gapSize);
-            temp.rectangle.width = cardSize;
-            temp.rectangle.height = cardSize;
-            temp.status = cardStatus::HIDDEN;
+            temp.rectangle.x = ((screenWidth - ((config.cols * config.cardSize) + (config.cols * gapSize))) / 2.0f) + i * (config.cardSize + gapSize);
+            temp.rectangle.y = ((screenHeight - ((config.rows * config.cardSize) + (config.rows * gapSize))) / 2.0f) + 20 + j * (config.cardSize + gapSize);
+            temp.rectangle.width = config.cardSize;
+            temp.rectangle.height = config.cardSize;
+            temp.status = CardStatus::HIDDEN;
             deck.push_back(temp);
         }
     }
@@ -134,61 +136,82 @@ void drawMenu(Button &playButtonEasy, Button &playButtonMedium, Button &playButt
     int titleFontSize = 110;
     const char *title = "MEMORY GAME";
     int titleWidth = MeasureText(title, titleFontSize);
-    DrawText(title, (screenWidth - titleWidth) / 2 + 3, 90 + 3, titleFontSize, LIGHTGRAY);
-    DrawText(title, (screenWidth - titleWidth) / 2, 90, titleFontSize, BLACK);
+    float titleX = (screenWidth - titleWidth) / 2.0f;
+    DrawText(title, titleX + 4, 90 + 4, titleFontSize, BLACK);
+    DrawText(title, titleX, 90, titleFontSize, GOLD);
 
-    int subFontSize = 35;
-    const char *subtitle = "Dopasuj w pary wszystkie karty!";
+    int subFontSize = 37;
+    const char *subtitle = "Dopasuj w pary wszystie karty!";
     int subWidth = MeasureText(subtitle, subFontSize);
-    DrawText(subtitle, (1280 - subWidth) / 2, 200, subFontSize, DARKGRAY);
+    float subX = (screenWidth - subWidth) / 2.0f;
+    DrawText(subtitle, subX, 200, subFontSize, BLACK);
 
-    int playFontSize = 25;
-    const char *play = "Wybierz poziom trudnosci:";
-    int playWidth = MeasureText(play, playFontSize);
-    DrawText(play, (1280 - playWidth) / 2, 270, playFontSize, DARKGRAY);
+    // int difficultyFontSize = 30;
+    // const char *difficulty = "Zagraj!";
+    // int difficultyWidth = MeasureText(difficulty, difficultyFontSize);
+    // float difficultyX = (screenWidth - difficultyWidth) / 2.0f;
+    // DrawText(difficulty, difficultyX, 300, difficultyFontSize, BLACK);
 
-    playButtonEasy.Draw();
-    playButtonMedium.Draw();
-    playButtonHard.Draw();
-    settingsButton.Draw();
-    exitButton.Draw();
+    playButtonEasy.draw();
+    playButtonMedium.draw();
+    playButtonHard.draw();
+    settingsButton.draw();
+    exitButton.draw();
 }
 
 void drawSettings(){
     DrawText("SETTINGS", 100, 100, 50, BLACK);
 }
 
-void drawGame(vector<Card> &deck, Button &backButton, gameStats &stats){
+void drawGame(vector<Card> &deck, Button &backButton, GameStats &stats){
     for (int i = 0; i < deck.size(); i++) {
-        deck[i].Draw();
+        deck[i].draw();
     }
-    backButton.Draw();
+    backButton.draw();
 
     int fontSize = 30;
     const char *timeText = TextFormat("Czas: %ds", (int)stats.gameTime);
     const char *movesText = TextFormat("Ruchy: %d", stats.movesCount);
     const char *pairsText = TextFormat("Pozostalo par: %d", stats.pairsLeft);
-
     int timeWidth = MeasureText(timeText, fontSize);
     int movesWidth = MeasureText(movesText, fontSize);
     int pairsWidth = MeasureText(pairsText, fontSize);
-
-    int leftColumnCenter = 1280 / 4;
-    int middleColumnCenter = 1280 / 2;
-    int rightColumnCenter = (1280 / 4) * 3;
-
-    DrawText(timeText, leftColumnCenter - (timeWidth / 2), 40, fontSize, DARKGRAY);
-    DrawText(movesText, middleColumnCenter - (movesWidth / 2), 40, fontSize, DARKGRAY);
-    DrawText(pairsText, rightColumnCenter - (pairsWidth / 2), 40, fontSize, DARKGRAY);
+    int leftColumnCenter = screenWidth / 4;
+    int middleColumnCenter = screenWidth / 2;
+    int rightColumnCenter = (screenWidth / 4) * 3;
+    DrawText(timeText, leftColumnCenter - (timeWidth / 2), 40, fontSize, BLACK);
+    DrawText(movesText, middleColumnCenter - (movesWidth / 2), 40, fontSize, BLACK);
+    DrawText(pairsText, rightColumnCenter - (pairsWidth / 2), 40, fontSize, BLACK);
 }
 
-void checkForMouse(vector<Card> &deck, gameStats &stats) {
+void drawVictory(Button &menuButton, GameStats &stats) {
+    int titleFontSize = 70;
+    const char *title = "GRATULACJE!";
+    int titleWidth = MeasureText(title, titleFontSize);
+    float titleX = (screenWidth - titleWidth) / 2.0f;
+    DrawText(title, titleX + 4, 220 + 4, titleFontSize, BLACK);
+    DrawText(title, titleX, 220, titleFontSize, GOLD);
+
+    int statsFontSize = 30;
+    const char *timeText = TextFormat("Twoj czas: %ds", (int)stats.gameTime);
+    const char *movesText = TextFormat("Wykonane ruchy: %d", stats.movesCount);
+    int timeWidth = MeasureText(timeText, statsFontSize);
+    int movesWidth = MeasureText(movesText, statsFontSize);
+    float timeX = (screenWidth - timeWidth) / 2.0f;
+    float movesX = (screenWidth - movesWidth) / 2.0f;
+    DrawText(timeText, timeX, 320, statsFontSize, BLACK);
+    DrawText(movesText, movesX, 370, statsFontSize, BLACK);
+
+    menuButton.draw();
+}
+
+void updateGameplay(vector<Card> &deck, GameStats &stats) {
     int revealedCards = 0;
     int firstCard = -1;
     int secondCard = -1;
 
     for (int i = 0; i < deck.size(); i++) {
-        if (deck[i].status == cardStatus::REVEALED) {
+        if (deck[i].status == CardStatus::REVEALED) {
             revealedCards++;
             if (firstCard == -1) {
                 firstCard = i;
@@ -199,27 +222,26 @@ void checkForMouse(vector<Card> &deck, gameStats &stats) {
     }
     if (revealedCards == 2) {
         if (stats.revealTimer <= 0.0f) {
-            stats.revealTimer = 0.8f;
+            stats.revealTimer = 0.65f;
             stats.movesCount++;
-        } else {
-            stats.revealTimer -= GetFrameTime();
-            if (stats.revealTimer <= 0.0f) {
+        }
+        stats.revealTimer -= GetFrameTime();
+        if (stats.revealTimer <= 0.0f) {
                 if (deck[firstCard].id == deck[secondCard].id) {
-                    deck[firstCard].status = cardStatus::GUESSED;
-                    deck[secondCard].status = cardStatus::GUESSED;
+                    deck[firstCard].status = CardStatus::GUESSED;
+                    deck[secondCard].status = CardStatus::GUESSED;
                     stats.pairsLeft--;
                 } else {
-                    deck[firstCard].status = cardStatus::HIDDEN;
-                    deck[secondCard].status = cardStatus::HIDDEN;
+                    deck[firstCard].status = CardStatus::HIDDEN;
+                    deck[secondCard].status = CardStatus::HIDDEN;
                 }
                 stats.revealTimer = 0.0f;
             }
-        }
         return;
     }
     for (int i = 0; i < deck.size(); i++) {
-        if (deck[i].status == cardStatus::HIDDEN && deck[i].isClicked()) {
-            deck[i].status = cardStatus::REVEALED;
+        if (deck[i].status == CardStatus::HIDDEN && deck[i].isClicked()) {
+            deck[i].status = CardStatus::REVEALED;
             break;
         }
     }
@@ -228,63 +250,98 @@ void checkForMouse(vector<Card> &deck, gameStats &stats) {
 int main(){
     InitWindow(screenWidth, screenHeight, "Memory Game");
     SetTargetFPS(60);
+    Texture2D background = LoadTexture("../assets/textures/background.png");
 
-    Button playButtonEasy   = { { 1280 / 2.0f - 210, 330, 120, 120 }, "Easy" };
-    Button playButtonMedium = { { 1280 / 2.0f - 60, 330, 120, 120 }, "Medium" };
-    Button playButtonHard   = { { 1280 / 2.0f + 90, 330, 120, 120 }, "Hard" };
-    Button settingsButton   = { { 1280 / 2.0f - 210, 470, 420, 80 }, "Ustawienia" };
-    Button exitButton       = { { 1280 / 2.0f - 210, 570, 420, 80 }, "Wyjscie" };
-
-    Button gameplayBackButton = { { 30, 645, 160, 45 }, "Wstecz" };
-    Button settingsBackButton = { { 30, 645, 160, 45 }, "Wstecz" };
-
-    Button victoryRestartButton = { { 1280 / 2.0f - 150, 720 / 2.0f + 10, 300, 50 }, "Zagraj ponownie" };
-    Button victoryMenuButton = { { 1280 / 2.0f - 150, 720 / 2.0f + 75, 300, 50 }, "Menu glowne" };
+    Button playButtonEasy = {{screenWidth / 2.0f - 210,370, 130, 80}, "LATWY"};
+    Button playButtonMedium = {{screenWidth / 2.0f - 210 + 145, 370, 130, 80}, "SREDNI"};
+    Button playButtonHard = {{screenWidth / 2.0f - 210 + 290, 370, 130, 80}, "TRUDNY"};
+    Button settingsButton = {{screenWidth / 2.0f - 210, 470, 420, 80}, "USTAWIENIA"};
+    Button exitButton = {{screenWidth / 2.0f - 210, 570, 420, 80}, "WYJSCIE"};
+    Button gameplayBackButton = {{30, 645, 160, 45}, "WSTECZ"};
+    Button settingsBackButton = {{30, 645, 160, 45}, "WSTECZ"};
+    Button victoryMenuButton = {{screenWidth / 2.0f - 210, 450, 420, 80}, "MENU GLOWNE"};
 
     vector<Card> deck;
-    gameStats stats;
-    gameState currentGameState = gameState::MENU;
+    GameStats stats;
+    GameState currentGameState = GameState::VICTORY;
     bool keepRunning = true;
 
     while (keepRunning && !WindowShouldClose()) {
         switch (currentGameState) {
-            case gameState::MENU:
-                if (playButtonMedium.isClicked()) {
-                    deck = createDeck();
-                    stats.Reset(cols * rows / 2);
-                    currentGameState = gameState::GAMEPLAY;
-                } else if (settingsButton.isClicked()) {
-                    currentGameState = gameState::SETTINGS;
-                } else if (exitButton.isClicked()) {
+
+            case GameState::MENU:
+                if (playButtonEasy.isClicked()) {
+                    GameConfig config = {4, 4, 115};
+                    deck = createDeck(config);
+                    stats.reset(config.cols * config.rows / 2);
+                    currentGameState = GameState::GAMEPLAY;
+                }
+                else if (playButtonMedium.isClicked()) {
+                    GameConfig config = {6, 4, 100};
+                    deck = createDeck(config);
+                    stats.reset(config.cols * config.rows / 2);
+                    currentGameState = GameState::GAMEPLAY;
+                }
+                else if (playButtonHard.isClicked()) {
+                    GameConfig config = {6, 5, 95};
+                    deck = createDeck(config);
+                    stats.reset(config.cols * config.rows / 2);
+                    currentGameState = GameState::GAMEPLAY;
+                }
+                else if (settingsButton.isClicked()) {
+                    currentGameState = GameState::SETTINGS;
+                }
+                else if (exitButton.isClicked()) {
                     keepRunning = false;
                 }
                 break;
-            case gameState::GAMEPLAY:
+
+            case GameState::GAMEPLAY:
                 if (gameplayBackButton.isClicked()) {
-                    currentGameState = gameState::MENU;
+                    currentGameState = GameState::MENU;
                 }
                 stats.gameTime += GetFrameTime();
-                checkForMouse(deck, stats);
+                updateGameplay(deck, stats);
+                if (stats.pairsLeft == 0) {
+                    currentGameState = GameState::VICTORY;
+                }
                 break;
-            case gameState::SETTINGS:
-                // sprawdzenie przyciskow
+
+            case GameState::SETTINGS:
+                if (settingsBackButton.isClicked()) {
+                    currentGameState = GameState::MENU;
+                }
+                break;
+
+            case GameState::VICTORY:
+                if (victoryMenuButton.isClicked()) {
+                    currentGameState = GameState::MENU;
+                }
                 break;
         }
         BeginDrawing();
-        ClearBackground(WHITE);
+        DrawTexture(background, 0, 0, WHITE);
         switch (currentGameState) {
-            case gameState::MENU:
+
+            case GameState::MENU:
                 drawMenu(playButtonEasy, playButtonMedium, playButtonHard, settingsButton, exitButton);
                 break;
-            case gameState::GAMEPLAY:
+
+            case GameState::GAMEPLAY:
                 drawGame(deck, gameplayBackButton, stats);
                 break;
-            case gameState::SETTINGS:
+
+            case GameState::SETTINGS:
                 drawSettings();
+                break;
+
+            case GameState::VICTORY:
+                drawVictory(victoryMenuButton, stats);
                 break;
         }
         EndDrawing();
     }
+    UnloadTexture(background);
     CloseWindow();
     return 0;
 }
