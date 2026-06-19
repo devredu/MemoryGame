@@ -10,14 +10,15 @@ add_subdirectory(external/raylib)
 
 add_executable(MemoryGame
         src/main.cpp
+        include/user_interface.h
+        src/user_interface.cpp
+        include/game_logic.h
+        src/game_logic.cpp
+        include/common.h
 )
 
 target_link_libraries(MemoryGame PRIVATE
         raylib
-        opengl32
-        gdi32
-        winmm
-        shell32
 )
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/assets")
