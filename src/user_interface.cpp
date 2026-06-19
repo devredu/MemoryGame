@@ -24,8 +24,8 @@ void Button::draw() {
     Vector2 textSize = MeasureTextEx(mainFont, text, fontSize, spacing);
     float textX = rectangle.x + (rectangle.width - textSize.x) / 2.0f;
     float textY = rectangle.y + (rectangle.height - textSize.y) / 2.0f;
-    DrawTextEx(mainFont, text, { textX + 2.0f, textY + 2.0f }, fontSize, spacing, COLOR_BLACK);
-    DrawTextEx(mainFont, text, { textX, textY }, fontSize, spacing, COLOR_WHITE);
+    DrawTextEx(mainFont, text, {textX + 2.0f, textY + 2.0f}, fontSize, spacing, COLOR_BLACK);
+    DrawTextEx(mainFont, text, {textX, textY}, fontSize, spacing, COLOR_WHITE);
 }
 
 void drawTextWithShadow(Font &font, const char *text, float x, float y, int fontSize, float spacing, Color textColor, bool onCenter) {
@@ -47,7 +47,6 @@ void drawMenu(Button &playButtonEasy, Button &playButtonMedium, Button &playButt
     drawTextWithShadow(mainFont, "MEMORY", screenCenter + 14.0f, 50, 150, 4.0f, COLOR_ORANGE, false);
     drawTextWithShadow(mainFont, "GAME", screenCenter + 14.0f, 150, 150, 4.0f, COLOR_WHITE, false);
     drawTextWithShadow(mainFont, "Dopasuj w pary wszystkie karty!", 0, 300, 25, 1.0f, COLOR_WHITE, true);
-
     playButtonEasy.draw();
     playButtonMedium.draw();
     playButtonHard.draw();

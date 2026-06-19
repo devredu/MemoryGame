@@ -45,9 +45,10 @@ void Card::draw() {
 
 vector<Card> createDeck(GameConfig config){
     vector<Card> deck;
-    int totalCards = config.cols * config.rows;
-
     vector<int> cardIDs;
+    int totalCards = config.cols * config.rows;
+    int idIndex = 0;
+
     for (int i = 0; i < totalCards; i++) {
         cardIDs.push_back((i / 2) + 1);
     }
@@ -55,13 +56,11 @@ vector<Card> createDeck(GameConfig config){
     mt19937 g(rn());
     shuffle(cardIDs.begin(), cardIDs.end(), g);
 
-    int idIndex = 0;
     for (int i = 0; i < config.cols; i++) {
         for (int j = 0; j < config.rows; j++) {
             Card temp;
             temp.id = cardIDs[idIndex];
             idIndex++;
-
             temp.rectangle.x = ((screenWidth - ((config.cols * config.cardSize) + (config.cols * gapSize))) / 2.0f) + i * (config.cardSize + gapSize);
             temp.rectangle.y = ((screenHeight - ((config.rows * config.cardSize) + (config.rows * gapSize))) / 2.0f) + 20.0f + j * (config.cardSize + gapSize);
             temp.rectangle.width = config.cardSize;

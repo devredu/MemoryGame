@@ -20,7 +20,7 @@ int main(){
     Sound buttonClickSound = LoadSound("../assets/sounds/button_click_sound.mp3");
     Music backgroundMusic = LoadMusicStream("../assets/sounds/music.mp3");
     PlayMusicStream(backgroundMusic);
-    SetMusicVolume(backgroundMusic, 0.2f);
+    SetMusicVolume(backgroundMusic, 0.15f);
     bool isMuted = false;
 
     Button playButtonEasy = {{370,400, 160, 60}, "LATWY", COLOR_GREEN, COLOR_GREEN_HOVER, 25};
@@ -28,8 +28,8 @@ int main(){
     Button playButtonHard = {{750, 400, 160, 60}, "TRUDNY", COLOR_RED, COLOR_RED_HOVER, 25};
     Button settingsButton = {{430, 480, 420, 60}, "USTAWIENIA", COLOR_PURPLE, COLOR_PURPLE_HOVER, 30};
     Button exitButton = {{430, 560, 420, 60}, "WYJSCIE", COLOR_PURPLE, COLOR_PURPLE_HOVER, 30};
-    Button backButton = {{30, 645, 160, 45}, "WSTECZ", COLOR_RED, COLOR_RED_HOVER, 22};
     Button toggleMusicButton = {{430, 240, 420, 60}, "MUZYKA: WLACZONA", COLOR_GREEN, COLOR_GREEN_HOVER, 25};
+    Button backButton = {{30, 645, 160, 45}, "WSTECZ", COLOR_RED, COLOR_RED_HOVER, 22};
     Button victoryMenuButton = {{430, 455, 420, 80}, "MENU GLOWNE", COLOR_GREEN, COLOR_GREEN_HOVER, 30};
 
     vector<Card> deck;
