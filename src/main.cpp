@@ -1,8 +1,6 @@
 #include "raylib.h"
 #include <vector>
-#include "../include/common.h"
-#include "../include/game_logic.h"
-#include "../include/user_interface.h"
+#include "../include/screens.h"
 using namespace std;
 
 Font mainFont;
@@ -34,59 +32,59 @@ int main(){
     Button victoryMenuButton = {{430, 455, 420, 80}, "MENU GLOWNE", COLOR_GREEN, COLOR_GREEN_HOVER, 30};
 
     vector<Card> deck;
-    GameStats stats;
-    GameState currentGameState = GameState::MENU;
+    Stats stats;
+    GameStatus currentGameState = GameStatus::MENU;
     bool keepRunning = true;
 
     while (keepRunning && !WindowShouldClose()) {
         UpdateMusicStream(backgroundMusic);
         switch (currentGameState) {
 
-            case GameState::MENU:
+            case GameStatus::MENU:
                 if (playButtonEasy.isClicked()) {
                     PlaySound(buttonClickSound);
                     deck = createDeck(easyConfig);
                     stats.reset(easyConfig.cols * easyConfig.rows / 2);
-                    currentGameState = GameState::GAMEPLAY;
+                    currentGameState = GameStatus::GAMEPLAY;
                 }
                 else if (playButtonMedium.isClicked()) {
                     PlaySound(buttonClickSound);
                     deck = createDeck(mediumConfig);
                     stats.reset(mediumConfig.cols * mediumConfig.rows / 2);
-                    currentGameState = GameState::GAMEPLAY;
+                    currentGameState = GameStatus::GAMEPLAY;
                 }
                 else if (playButtonHard.isClicked()) {
                     PlaySound(buttonClickSound);
                     deck = createDeck(hardConfig);
                     stats.reset(hardConfig.cols * hardConfig.rows / 2);
-                    currentGameState = GameState::GAMEPLAY;
+                    currentGameState = GameStatus::GAMEPLAY;
                 }
                 else if (settingsButton.isClicked()) {
                     PlaySound(buttonClickSound);
-                    currentGameState = GameState::SETTINGS;
+                    currentGameState = GameStatus::SETTINGS;
                 }
                 else if (exitButton.isClicked()) {
                     keepRunning = false;
                 }
                 break;
 
-            case GameState::GAMEPLAY:
+            case GameStatus::GAMEPLAY:
                 if (backButton.isClicked()) {
                     PlaySound(buttonClickSound);
-                    currentGameState = GameState::MENU;
+                    currentGameState = GameStatus::MENU;
                 }
                 stats.gameTime += GetFrameTime();
                 updateGameplay(deck, stats, cardClickSound, cardMatchSound);
                 if (stats.pairsLeft == 0) {
                     PlaySound(victorySound);
-                    currentGameState = GameState::VICTORY;
+                    currentGameState = GameStatus::VICTORY;
                 }
                 break;
 
-            case GameState::SETTINGS:
+            case GameStatus::SETTINGS:
                 if (backButton.isClicked()) {
                     PlaySound(buttonClickSound);
-                    currentGameState = GameState::MENU;
+                    currentGameState = GameStatus::MENU;
                 }
                 if (toggleMusicButton.isClicked()) {
                     PlaySound(buttonClickSound);
@@ -105,30 +103,33 @@ int main(){
                 }
                 break;
 
-            case GameState::VICTORY:
+            case GameStatus::VICTORY:
                 if (victoryMenuButton.isClicked()) {
                     PlaySound(buttonClickSound);
-                    currentGameState = GameState::MENU;
+                    currentGameState = GameStatus::MENU;
                 }
                 break;
         }
+
+
+
         BeginDrawing();
         DrawTexture(background, 0, 0, COLOR_LIGHT_GRAY);
         switch (currentGameState) {
 
-            case GameState::MENU:
+            case GameStatus::MENU:
                 drawMenu(playButtonEasy, playButtonMedium, playButtonHard, settingsButton, exitButton);
                 break;
 
-            case GameState::GAMEPLAY:
+            case GameStatus::GAMEPLAY:
                 drawGame(deck, backButton, stats);
                 break;
 
-            case GameState::SETTINGS:
+            case GameStatus::SETTINGS:
                 drawSettings(backButton, toggleMusicButton);
                 break;
 
-            case GameState::VICTORY:
+            case GameStatus::VICTORY:
                 drawVictory(victoryMenuButton, stats);
                 break;
         }

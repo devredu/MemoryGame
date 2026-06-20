@@ -10,11 +10,12 @@ add_subdirectory(external/raylib)
 
 add_executable(MemoryGame
         src/main.cpp
-        include/user_interface.h
-        src/user_interface.cpp
-        include/game_logic.h
-        src/game_logic.cpp
-        include/common.h
+        src/game.cpp
+        src/screens.cpp
+        src/widgets.cpp
+        include/game.h
+        include/screens.h
+        include/widgets.h
 )
 
 target_link_libraries(MemoryGame PRIVATE

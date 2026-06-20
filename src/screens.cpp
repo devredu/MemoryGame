@@ -1,32 +1,4 @@
-#include "../include/user_interface.h"
-using namespace std;
-
-bool Button::isHovered() {
-    return CheckCollisionPointRec(GetMousePosition(), rectangle);
-}
-bool Button::isClicked() {
-    return isHovered() && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-}
-void Button::draw() {
-    Color currentButtonColor;
-    if (isHovered()) {
-        currentButtonColor = hoverColor;
-    } else {
-        currentButtonColor = baseColor;
-    }
-
-    Rectangle shadowRectangle = {rectangle.x + 4, rectangle.y + 4, rectangle.width, rectangle.height};
-    DrawRectangleRounded(shadowRectangle, 0.25f, 4, COLOR_BLACK);
-    DrawRectangleRounded(rectangle, 0.25f, 4, currentButtonColor);
-    DrawRectangleRoundedLinesEx(rectangle, 0.25f, 4, 3.0f, COLOR_BLACK);
-
-    float spacing = 2.0f;
-    Vector2 textSize = MeasureTextEx(mainFont, text, fontSize, spacing);
-    float textX = rectangle.x + (rectangle.width - textSize.x) / 2.0f;
-    float textY = rectangle.y + (rectangle.height - textSize.y) / 2.0f;
-    DrawTextEx(mainFont, text, {textX + 2.0f, textY + 2.0f}, fontSize, spacing, COLOR_BLACK);
-    DrawTextEx(mainFont, text, {textX, textY}, fontSize, spacing, COLOR_WHITE);
-}
+#include "../include/screens.h"
 
 void drawTextWithShadow(Font &font, const char *text, float x, float y, int fontSize, float spacing, Color textColor, bool onCenter) {
     Vector2 textSize = MeasureTextEx(font, text, fontSize, spacing);
@@ -61,7 +33,7 @@ void drawSettings(Button &backButton, Button &toggleMusicButton){
     backButton.draw();
 }
 
-void drawGame(vector<Card> &deck, Button &backButton, GameStats &stats){
+void drawGame(vector<Card> &deck, Button &backButton, Stats &stats){
     for (int i = 0; i < deck.size(); i++) {
         deck[i].draw();
     }
@@ -81,7 +53,7 @@ void drawGame(vector<Card> &deck, Button &backButton, GameStats &stats){
     drawTextWithShadow(mainFont, pairsText, rightColumnCenter,  textY, fontSize, spacing, COLOR_WHITE, false);
 }
 
-void drawVictory(Button &menuButton, GameStats &stats) {
+void drawVictory(Button &menuButton, Stats &stats) {
     drawTextWithShadow(mainFont, "GRATULACJE!", 0, 170, 110, 3.0f, COLOR_ORANGE, true);
 
     const char *timeText = TextFormat("TWOJ CZAS: %d S", (int)stats.gameTime);
