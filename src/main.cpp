@@ -1,10 +1,26 @@
+/**
+ * @file main.cpp
+ * @brief Główny plik startowy gry Memory.
+ * @details Odpowiada za inicjalizację okna aplikacji, systemu audio, ładowanie
+ * zasobów (tekstur, czcionek, dźwięków), a także zawiera główną pętlę gry,
+ * która zarządza aktualizacją logiki i renderowaniem odpowiednich ekranów.
+ */
 #include "raylib.h"
 #include <vector>
 #include "../include/screens.h"
 using namespace std;
 
+/**
+ * @brief Globalna zmienna przechowująca czcionkę gry.
+ */
 Font mainFont;
-
+/**
+ * @brief Główna funkcja gry.
+ * @details Funkcja ta odpowiada za całe działanie gry. Inicjalizuje okno oraz dzwięki. Ładuje wszystkie wykorzystane
+ * w projekcie zasoby (zdjęcie tła, dzwięki, czcionkę). Znajdują się tutaj definicje wszystkich przycisków w grze. Dodatkowo
+ * odpowiada za uruchomienie głównej pętli gry, w której instrukcje switch sterują aktualnym stanem rozgrywki (Menu, Gameplay, Settings, Victory).
+ * A na samym końcu zwalnia pamięć załadowanych wcześniej zasobów i bezpiecznie zamyka program.
+ */
 int main(){
     ChangeDirectory(GetApplicationDirectory());
     InitWindow(screenWidth, screenHeight, "Memory Game");
