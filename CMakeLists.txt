@@ -27,3 +27,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/assets")
             "${CMAKE_SOURCE_DIR}/assets"
             "$<TARGET_FILE_DIR:MemoryGame>/assets")
 endif()
+
+if(WIN32)
+    target_link_options(MemoryGame PRIVATE "-static-libgcc" "-static-libstdc++" "-static")
+endif()

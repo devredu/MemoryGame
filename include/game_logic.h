@@ -19,6 +19,7 @@ struct Card {
 };
 
 vector<Card> createDeck(GameConfig config);
+
 void updateGameplay(std::vector<Card> &deck, GameStats &stats, Sound cardClickSound, Sound cardMatchSound);
 
 #endif //MEMORYGAME_GAME_LOGIC_H
