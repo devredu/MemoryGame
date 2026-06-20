@@ -5,6 +5,7 @@
  * m.in. za rozmiar okna, struktura przechowująca konfigurację dla różnych poziomów trudności, struktura ze statystykami
  * potrzebnymi do działania aplikacji oraz deklaracje funkcji odpowiedzialnych za tworzenie talii kart i aktualizację logiki rozgrywki.
  */
+
 #ifndef MEMORYGAME_GAME_H
 #define MEMORYGAME_GAME_H
 

@@ -5,6 +5,7 @@
  * zasobów (tekstur, czcionek, dźwięków), a także zawiera główną pętlę gry,
  * która zarządza aktualizacją logiki i renderowaniem odpowiednich ekranów.
  */
+
 #include "raylib.h"
 #include <vector>
 #include "../include/screens.h"
@@ -14,6 +15,7 @@ using namespace std;
  * @brief Globalna zmienna przechowująca czcionkę gry.
  */
 Font mainFont;
+
 /**
  * @brief Główna funkcja gry.
  * @details Funkcja ta odpowiada za całe działanie gry. Inicjalizuje okno oraz dzwięki. Ładuje wszystkie wykorzystane

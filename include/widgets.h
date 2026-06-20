@@ -5,6 +5,7 @@
  * oraz logiki gry Memory. Znajdują się tu struktury reprezentujące pojedynczą kartę (Card)
  * oraz uniwersalny przycisk (Button), wraz z enumami określającymi stany gry i kart.
  */
+
 #ifndef MEMORYGAME_WIDGETS_H
 #define MEMORYGAME_WIDGETS_H
 #include "raylib.h"
@@ -18,6 +19,7 @@ enum struct GameStatus {
     SETTINGS, ///< Ekran ustawień muzyki.
     VICTORY ///< Ekran końca gry po wygranej.
 };
+
 /**
  * @brief Stany widoczności karty na planszy.
  */
