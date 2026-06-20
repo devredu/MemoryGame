@@ -8,6 +8,7 @@ using namespace std;
 Font mainFont;
 
 int main(){
+    ChangeDirectory(GetApplicationDirectory());
     InitWindow(screenWidth, screenHeight, "Memory Game");
     InitAudioDevice();
     SetTargetFPS(60);
